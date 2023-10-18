@@ -8,6 +8,8 @@ namespace PwshBridge;
 
 internal sealed class PwshPipe : IDisposable, IModuleAssemblyCleanup
 {
+    private readonly ChildProcessManager _childProcessManager = new();
+
     private readonly Process? _pwshProcess;
 
     private readonly NamedPipeConnectionInfo? _pipeInfo;
@@ -35,6 +37,7 @@ internal sealed class PwshPipe : IDisposable, IModuleAssemblyCleanup
             Arguments = "-NoProfile"
         });
 
+        _childProcessManager.AddProcess(_pwshProcess);
         _pipeInfo = new NamedPipeConnectionInfo(_pwshProcess.Id);
         _runspace = RunspaceFactory.CreateRunspace(pSHost, _pipeInfo);
         _runspace.Open();
