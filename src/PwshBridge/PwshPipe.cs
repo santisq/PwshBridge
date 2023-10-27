@@ -6,10 +6,8 @@ using System.Management.Automation.Runspaces;
 
 namespace PwshBridge;
 
-internal sealed class PwshPipe : IDisposable, IModuleAssemblyCleanup
+public sealed class PwshPipe : IDisposable, IModuleAssemblyCleanup
 {
-    private readonly ChildProcessManager _childProcessManager = new();
-
     private readonly Process? _pwshProcess;
 
     private readonly NamedPipeConnectionInfo? _pipeInfo;
@@ -25,19 +23,24 @@ internal sealed class PwshPipe : IDisposable, IModuleAssemblyCleanup
     internal bool IsAlive =>
         !_disposed && _pwshProcess?.HasExited is not true;
 
-    internal PwshPipe(PSHost pSHost)
+    public PwshPipe(PSHost pSHost, string path, bool interactive)
     {
+        string arguments = "-NoProfile -NoLogo";
+        if (!interactive)
+        {
+            arguments += " -NonInteractive";
+        }
+
         _pwshProcess = Process.Start(new ProcessStartInfo
         {
             CreateNoWindow = true,
-            FileName = "pwsh",
+            FileName = path,
             WindowStyle = ProcessWindowStyle.Hidden,
             UseShellExecute = true,
             LoadUserProfile = false,
-            Arguments = "-NoProfile"
+            Arguments = arguments
         });
 
-        _childProcessManager.AddProcess(_pwshProcess);
         _pipeInfo = new NamedPipeConnectionInfo(_pwshProcess.Id);
         _runspace = RunspaceFactory.CreateRunspace(pSHost, _pipeInfo);
         _runspace.Open();
@@ -80,6 +83,8 @@ internal sealed class PwshPipe : IDisposable, IModuleAssemblyCleanup
         }
         return this;
     }
+
+    internal Process? GetProcess() => _pwshProcess;
 
     private void Dispose(bool disposing)
     {

@@ -5,12 +5,12 @@ using System.Management.Automation;
 
 namespace PwshBridge;
 
-internal static class PwshAppsHelper
+public static class PwshAppsHelper
 {
     [ThreadStatic]
     private static Dictionary<string, PwshTarget>? s_apps;
 
-    internal static Dictionary<string, PwshTarget> Get =>
+    public static Dictionary<string, PwshTarget> Get =>
         s_apps ??= GetApps();
 
     internal static bool ContainsKey(string key) =>

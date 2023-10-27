@@ -1,52 +1,52 @@
 using System;
+using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Host;
 
 namespace PwshBridge;
 
-[Cmdlet(
-    VerbsLifecycle.Invoke, "PSPipe",
-    DefaultParameterSetName = _scriptBlockOnlySet)]
+[Cmdlet(VerbsLifecycle.Invoke, "PSPipe")]
 [OutputType(typeof(PSObject))]
 [Alias("pspipe")]
 public sealed class InvokePSPipeCommand : PSCmdlet
 {
-    private const string _scriptBlockOnlySet = "ScriptBlockOnly";
-
-    private const string _withPSVersionSet = "PSVersion";
-
     [ThreadStatic]
-    internal static PwshPipe? _pipe;
+    public static PipeManager? _manager;
 
-    [Parameter(
-        ParameterSetName = _withPSVersionSet,
-        Position = 0)]
-    [PwshTargetTransformation]
+    [Parameter(Position = 0, Mandatory = true)]
+    public ScriptBlock ScriptBlock { get; set; } = null!;
+
+    [Parameter(Position = 1)]
     [ArgumentCompleter(typeof(PwshTargetCompleter))]
     [ValidateNotNullOrEmpty]
     public string? PSVersion { get; set; }
 
-    [Parameter(
-        ParameterSetName = _scriptBlockOnlySet,
-        Mandatory = true,
-        Position = 0)]
-    [Parameter(
-        ParameterSetName = _withPSVersionSet,
-        Mandatory = true,
-        Position = 1)]
-    public ScriptBlock ScriptBlock { get; set; } = null!;
-
     [Parameter]
     public object[] ArgumentList { get; set; } = Array.Empty<object>();
 
+    [Parameter]
+    public SwitchParameter Interative { get; set; }
+
     protected override void EndProcessing()
     {
-        if (_pipe is null or { IsAlive: false })
+        if (_manager is null or { Disposed: true })
         {
-            _pipe = new((PSHost)GetVariableValue("Host"));
+            _manager = new();
         }
 
-        _pipe.Invoke(
+        PSVersion ??= PwshAppsHelper.Get.First().Key;
+
+        if (!_manager.PipeIsAlive(PSVersion))
+        {
+            PwshPipe pipe = new(
+                (PSHost)GetVariableValue("Host"),
+                PwshAppsHelper.Get[PSVersion].ResolvedPath,
+                Interative.IsPresent);
+
+            _manager.AddPipe(PSVersion, pipe);
+        }
+
+        _manager[PSVersion].Invoke(
             scriptBlock: ScriptBlock,
             arguments: ArgumentList,
             cmdlet: this);
