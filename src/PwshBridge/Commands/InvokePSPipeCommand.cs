@@ -14,6 +14,12 @@ public sealed class InvokePSPipeCommand : PSCmdlet
     [Parameter(Mandatory = true, Position = 0)]
     public ScriptBlock ScriptBlock { get; set; } = null!;
 
+    [Parameter(Position = 1)]
+    [PwshTargetTransformation]
+    [ArgumentCompleter(typeof(PwshTargetCompleter))]
+    [ValidateNotNullOrEmpty]
+    public string? PSVersion { get; set; }
+
     [Parameter]
     public object[] ArgumentList { get; set; } = Array.Empty<object>();
 
