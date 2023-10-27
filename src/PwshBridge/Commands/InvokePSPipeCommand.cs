@@ -4,21 +4,37 @@ using System.Management.Automation.Host;
 
 namespace PwshBridge;
 
-[Cmdlet(VerbsLifecycle.Invoke, "PSPipe")]
+[Cmdlet(
+    VerbsLifecycle.Invoke, "PSPipe",
+    DefaultParameterSetName = _scriptBlockOnlySet)]
 [OutputType(typeof(PSObject))]
+[Alias("pspipe")]
 public sealed class InvokePSPipeCommand : PSCmdlet
 {
+    private const string _scriptBlockOnlySet = "ScriptBlockOnly";
+
+    private const string _withPSVersionSet = "PSVersion";
+
     [ThreadStatic]
     internal static PwshPipe? _pipe;
 
-    [Parameter(Mandatory = true, Position = 0)]
-    public ScriptBlock ScriptBlock { get; set; } = null!;
-
-    [Parameter(Position = 1)]
+    [Parameter(
+        ParameterSetName = _withPSVersionSet,
+        Position = 0)]
     [PwshTargetTransformation]
     [ArgumentCompleter(typeof(PwshTargetCompleter))]
     [ValidateNotNullOrEmpty]
     public string? PSVersion { get; set; }
+
+    [Parameter(
+        ParameterSetName = _scriptBlockOnlySet,
+        Mandatory = true,
+        Position = 0)]
+    [Parameter(
+        ParameterSetName = _withPSVersionSet,
+        Mandatory = true,
+        Position = 1)]
+    public ScriptBlock ScriptBlock { get; set; } = null!;
 
     [Parameter]
     public object[] ArgumentList { get; set; } = Array.Empty<object>();

@@ -10,10 +10,10 @@ internal static class PwshAppsHelper
     [ThreadStatic]
     private static Dictionary<string, PwshTarget>? s_apps;
 
-    public static Dictionary<string, PwshTarget> Get =>
+    internal static Dictionary<string, PwshTarget> Get =>
         s_apps ??= GetApps();
 
-    public static bool ContainsKey(string key) =>
+    internal static bool ContainsKey(string key) =>
         Get.ContainsKey(key);
 
     private static Dictionary<string, PwshTarget> GetApps()
@@ -39,19 +39,20 @@ internal static class PwshAppsHelper
                         Version
                 }
 
-                [pscustomobject]@{
+                @{
+                    Version        = $version
                     CompletionText = '{0} ({1})' -f [System.IO.Path]::GetFileNameWithoutExtension($app.Name), $version
                     ResolvedPath   = $resolvedTarget
                 }
             }", useLocalScope: false)
             .Invoke<PwshTarget>()
-            .ToDictionary(e => e.CompletionText);
+            .ToDictionary(e => e.Version);
     }
 }
 
-internal record PwshTarget
+public sealed class PwshTarget
 {
-    internal string CompletionText { get; set; } = null!;
-
-    internal string ResolvedPath { get; set; } = null!;
+    public string Version { get; set; } = null!;
+    public string CompletionText { get; set; } = null!;
+    public string ResolvedPath { get; set; } = null!;
 }
